@@ -12,10 +12,10 @@
 - [ ] Read data
 - [ ] Define model
     - [ ] Embedding block
-    - [ ] Transformer block
-        - [ ] Layer Norm block
-        - [ ] Multi head attention block
-        - [ ] DNN block 
+    - [x] Transformer block
+        - [x] Layer Norm block
+        - [x] Multi head attention block
+        - [x] DNN block 
 - [ ] Define loss functions
 - [ ] Define training / val loop
 - [ ] Train / test
