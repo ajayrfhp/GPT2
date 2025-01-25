@@ -10,8 +10,8 @@
 ## Progress
 - [x] Setup pytorch with GPU
 - [ ] Read data
-- [ ] Define model
-    - [ ] Embedding block
+- [x] Define model
+    - [x] Embedding block
     - [x] Transformer block
         - [x] Layer Norm block
         - [x] Multi head attention block
