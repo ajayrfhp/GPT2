@@ -45,7 +45,12 @@ class GPT2(nn.Module):
             _type_: Output tensor
         """
         token_embeddings = self.token_embedding(x)
-        position_embeddings = self.position_embedding(torch.arange(x.shape[1]))
+
+        position_vector = torch.arange(x.shape[1])
+        if self.config["device"] == torch.device("cuda"):
+            position_vector = position_vector.cuda()
+
+        position_embeddings = self.position_embedding(position_vector)
         x = token_embeddings + position_embeddings
 
         x = self.transformer_blocks(x)

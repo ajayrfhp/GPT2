@@ -6,7 +6,7 @@ import torch
 import numpy as np
 from models import MultiHeadAttention, LayerNorm, FeedForward, TransformerBlock
 from gpt2 import GPT2
-from utils import get_sum_parameters_of_model
+from utils import get_sum_parameters_of_model, get_memory_footprint_of_model
 
 # pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia
 
@@ -110,6 +110,7 @@ def test_GPT2():
         "vocab_size": 50257,
         "layers": 12,
         "context_length": 1024,
+        "device": "cpu",
     }
     gpt2 = GPT2(config)
 
@@ -117,3 +118,39 @@ def test_GPT2():
     out = gpt2(x)
 
     assert out.shape == (2, 10, 50257), f"Expected (2, 10, 50257) but got {out.shape}"
+
+    expected_params = 163  # 163 million
+    actual_params = get_sum_parameters_of_model(gpt2, millions=True)
+
+    assert np.allclose(
+        actual_params, expected_params, atol=0.1
+    ), f"Expected {expected_params} params"
+
+    actual_memory = get_memory_footprint_of_model(gpt2)
+
+    print(f"Memory footprint: {actual_memory} MB")
+
+
+def test_gpt2_on_gpu():
+    """Tests GPT2 on GPU"""
+    device = torch.device("cuda")
+    config = {
+        "emb_dim": 768,
+        "heads": 12,
+        "drop_out": 0.1,
+        "vocab_size": 50257,
+        "layers": 12,
+        "context_length": 1024,
+        "device": device,
+    }
+    gpt2 = GPT2(config)
+    x_on_gpu = torch.randint(0, 50257, (10, 10)).cuda()
+    gpt2_on_gpu = gpt2.cuda()
+    _ = gpt2_on_gpu(x_on_gpu)
+
+    # Get memory usage from NVIDIA-SMI
+    free_memory, total_memory = torch.cuda.mem_get_info()
+    used_memory = total_memory - free_memory
+
+    print(f"Used memory: {used_memory / 1e6} MB")
+    print(f"Total memory: {total_memory / 1e6} MB")
