@@ -5,6 +5,7 @@ Test if pytorch can access GPU
 import torch
 import numpy as np
 from models import MultiHeadAttention, LayerNorm, FeedForward, TransformerBlock
+from gpt2 import GPT2
 from utils import get_sum_parameters_of_model
 
 # pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia
@@ -98,3 +99,21 @@ def test_transformer():
     assert np.allclose(
         actual_params, expected_params, atol=0.1
     ), f"Expected {expected_params} params"
+
+
+def test_GPT2():
+    """Tests GPT2"""
+    config = {
+        "emb_dim": 768,
+        "heads": 12,
+        "drop_out": 0.1,
+        "vocab_size": 50257,
+        "layers": 12,
+        "context_length": 1024,
+    }
+    gpt2 = GPT2(config)
+
+    x = torch.randint(0, 50257, (2, 10))
+    out = gpt2(x)
+
+    assert out.shape == (2, 10, 50257), f"Expected (2, 10, 50257) but got {out.shape}"
