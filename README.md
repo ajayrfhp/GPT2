@@ -9,7 +9,9 @@
 
 ## Progress
 - [x] Setup pytorch with GPU
-- [ ] Read data
+- [x] Read data
+    - [x] Tokenizer
+    - [x] Sliding context window data generator
 - [x] Define model
     - [x] Embedding block
     - [x] Transformer block
