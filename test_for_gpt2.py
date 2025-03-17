@@ -144,11 +144,16 @@ def test_gpt2_on_gpu():
         "device": device,
     }
     gpt2 = GPT2(config)
-    x_on_gpu = torch.randint(0, 50257, (10, 10)).cuda()
+    x_on_gpu = torch.randint(0, 50257, (20, 10)).cuda()
     gpt2_on_gpu = gpt2.cuda()
-    _ = gpt2_on_gpu(x_on_gpu)
+    outputs_on_gpu = gpt2_on_gpu(x_on_gpu)
 
-    # Get memory usage from NVIDIA-SMI
+    assert outputs_on_gpu.shape == (
+        20,
+        10,
+        50257,
+    ), f"Expected {x_on_gpu.shape} but got {outputs_on_gpu.shape}"
+
     free_memory, total_memory = torch.cuda.mem_get_info()
     used_memory = total_memory - free_memory
 

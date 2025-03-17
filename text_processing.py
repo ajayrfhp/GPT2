@@ -1,4 +1,74 @@
 import torch
+import tiktoken
+from torch.utils.data import Dataset, DataLoader
+
+
+class GPTDatasetV1(Dataset):
+    """GPT Dataset V1"""
+
+    def __init__(self, text, tokenizer, context, stride, log=False):
+        self.input_ids = []
+        self.target_ids = []
+        self.stride = stride
+        self.log = log
+
+        tokens = tokenizer.encode(text, allowed_special={"<|endoftext|>"})
+
+        if self.log:
+            print("First 20 tokens are", tokens[0:20])
+            print("First 20 decoded tokens are", tokenizer.decode(tokens[0:20]))
+
+        for i in range(0, len(tokens) - context, stride):
+            input_chunk = tokens[i : i + context]
+            target_chunk = tokens[i + 1 : i + 1 + context]
+
+            if len(input_chunk) != context or len(target_chunk) != context:
+                continue
+
+            self.input_ids.append(torch.tensor(input_chunk))
+            self.target_ids.append(torch.tensor(target_chunk))
+
+            if self.log and i <= 4:
+                print(f"input ids", input_chunk)
+                print(f"target ids", target_chunk)
+                print(f"Input: {tokenizer.decode(input_chunk)}")
+                print(f"Target: {tokenizer.decode(target_chunk)}")
+                print(stride)
+                print("\n\n")
+
+        print(f"Number of training examples: {len(self.input_ids)}")
+
+    def __len__(self):
+        return len(self.input_ids)
+
+    def __getitem__(self, idx):
+        return self.input_ids[idx], self.target_ids[idx]
+
+
+def create_dataloader_v1(
+    text,
+    batch_size=4,
+    context=256,
+    stride=128,
+    shuffle=True,
+    drop_last=True,
+    num_workers=0,
+    log=False,
+):
+    tokenizer = tiktoken.get_encoding("gpt2")
+    dataset = GPTDatasetV1(text, tokenizer, context, stride, log=log)
+    dataloader = DataLoader(
+        dataset,
+        batch_size=batch_size,
+        shuffle=shuffle,
+        drop_last=drop_last,
+        num_workers=num_workers,
+    )
+
+    if log:
+        print("First batch is", next(iter(dataloader)))
+
+    return dataloader
 
 
 def generate_text_greedy(model, idx, max_new_tokens, context_size):
