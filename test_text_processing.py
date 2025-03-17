@@ -81,3 +81,18 @@ def test_gptdataset():
     assert dataset.target_ids[0].shape == (
         context,
     ), "target_ids should have shape (context,)"
+
+    context = 2
+    stride = 2
+    dataset = GPTDatasetV1(
+        sample_texts, tokenizer, context=context, stride=stride, log=True
+    )
+    assert (
+        len(dataset) == 1
+    ), "This is a test with context 2 and stride 2 has only one example"
+    assert dataset.input_ids[0].shape == (
+        context,
+    ), "input_ids should have shape (context,)"
+    assert dataset.target_ids[0].shape == (
+        context,
+    ), "target_ids should have shape (context,)"
