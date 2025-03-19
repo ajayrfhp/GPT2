@@ -18,8 +18,8 @@
         - [x] Layer Norm block
         - [x] Multi head attention block
         - [x] DNN block 
-- [ ] Define loss functions
-- [ ] Define training / val loop
+- [x] Define loss functions
+- [x] Define training / val loop
 - [ ] Train / test
-    - [ ] Toy dataset
+    - [x] Toy dataset
     - [ ] Real dataset
