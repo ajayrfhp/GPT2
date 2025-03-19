@@ -4,8 +4,7 @@ Test if pytorch can access GPU
 
 import torch
 import numpy as np
-from models import MultiHeadAttention, LayerNorm, FeedForward, TransformerBlock
-from gpt2 import GPT2
+from models import *
 from utils import get_sum_parameters_of_model, get_memory_footprint_of_model
 
 # pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia
@@ -13,7 +12,7 @@ from utils import get_sum_parameters_of_model, get_memory_footprint_of_model
 
 def test_gpu_presence():
     """Test presence of GPU"""
-    assert torch.cuda.is_available()
+    assert torch.cuda.is_available(), "GPU is not available"
 
 
 def test_mha():

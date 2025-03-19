@@ -5,7 +5,7 @@
 - [The github repo](https://github.com/rasbt/LLMs-from-scratch/tree/main) associated with book
 - I aim to implement every line of code by myself and use his book for reference, do buy his book !
 
-![Downloaded Image](./downloaded_image.webp)
+![Downloaded Image](./GPT2Stages.png)
 
 ## Progress
 - [x] Setup pytorch with GPU
