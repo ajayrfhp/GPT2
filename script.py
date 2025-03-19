@@ -4,15 +4,21 @@
 # Generate text using GPT2 model
 import torch
 import tiktoken
-from gpt2 import GPT2
-from text_processing import generate_text_greedy, text_to_idx, idx_to_text
+from models import GPT2
+from text_processing import (
+    generate_text_greedy,
+    text_to_idx,
+    idx_to_text,
+    create_dataloader_v1,
+    get_download_data,
+)
 
 
-def train_gpt2(gpt2, config):
+def train_gpt2(gpt2, data, config):
     pass
 
 
-def test_gpt2(gpt2):
+def test_gpt2(gpt2, data):
     pass
 
 
@@ -28,6 +34,17 @@ if __name__ == "__main__":
         "drop_out": 0.1,
     }
 
+    raw_text = get_download_data()
+    data = create_dataloader_v1(
+        raw_text,
+        batch_size=4,
+        context=config["context_length"],
+        stride=128,
+        shuffle=True,
+        drop_last=True,
+        num_workers=0,
+        log=False,
+    )
     tokenizer = tiktoken.get_encoding("gpt2")
 
     # Initialize GPT2 model
@@ -35,10 +52,10 @@ if __name__ == "__main__":
     gpt2.to(config["device"])
 
     # Train GPT2 model
-    train_gpt2(gpt2, config)
+    train_gpt2(gpt2, data, config)
 
     # Test GPT2 model
-    test_gpt2(gpt2)
+    test_gpt2(gpt2, data)
 
     starting_context = "The cat"
 

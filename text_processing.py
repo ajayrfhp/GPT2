@@ -1,6 +1,7 @@
 import torch
 import tiktoken
 from torch.utils.data import Dataset, DataLoader
+import urllib
 
 
 class GPTDatasetV1(Dataset):
@@ -69,6 +70,20 @@ def create_dataloader_v1(
         print("First batch is", next(iter(dataloader)))
 
     return dataloader
+
+
+def read_data(file_path):
+    with open(file_path, "r", encoding="utf-8") as f:
+        data = f.read()
+    return data
+
+
+def get_download_data(
+    url="https://raw.githubusercontent.com/rasbt/LLMs-from-scratch/main/ch02/01_main-chapter-code/the-verdict.txt",
+    file_path="./data/verdict.txt",
+):
+    urllib.request.urlretrieve(url, file_path)
+    return read_data(file_path)
 
 
 def generate_text_greedy(model, idx, max_new_tokens, context_size):
