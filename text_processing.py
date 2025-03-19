@@ -14,6 +14,7 @@ class GPTDatasetV1(Dataset):
         self.log = log
 
         tokens = tokenizer.encode(text, allowed_special={"<|endoftext|>"})
+        print("Number of tokens:", len(tokens))
 
         if self.log:
             print("First 20 tokens are", tokens[0:20])
@@ -86,8 +87,10 @@ def get_download_data(
     return read_data(file_path)
 
 
-def generate_text_greedy(model, idx, max_new_tokens, context_size):
+def generate_text_greedy(model, idx, max_new_tokens, context_size, config):
     for _ in range(max_new_tokens):
+        idx.to(config["device"])
+        model.to(config["device"])
         logits = model(
             idx[:, -context_size:]
         )  # consider only last set of context size tokens
