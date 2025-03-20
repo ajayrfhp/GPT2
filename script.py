@@ -12,44 +12,7 @@ from text_processing import (
     create_dataloader_v1,
     get_download_data,
 )
-
-
-def train(model, train_data, test_data, config):
-    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
-    criterion = torch.nn.CrossEntropyLoss()
-    for epoch in range(config["num_epochs"]):
-        model.train()
-        batch_idx = 0
-        batch_loss = 0
-        for inpt, target in train_data:
-            batch_idx += 1
-            optimizer.zero_grad()
-            inpt = inpt.to(config["device"])
-            target = target.to(config["device"])
-            predictions = model(inpt)
-            predictions = predictions.flatten(0, 1)
-            target = target.flatten(0, 1)
-            loss = torch.nn.CrossEntropyLoss()(predictions, target)
-            loss.backward()
-            optimizer.step()
-            batch_loss += loss.item()
-            if batch_idx % 100 == 0:
-                avg_batch_loss = batch_loss / batch_idx
-                print(f"Average batch loss: {avg_batch_loss}")
-                batch_loss = 0
-        print(f"Epoch {epoch + 1}/{config['num_epochs']}, Loss: {loss.item()}")
-
-        test_loss = 0
-        for inpt, target in test_data:
-            inpt = inpt.to(config["device"])
-            target = target.to(config["device"])
-            predictions = model(inpt)
-            predictions = predictions.flatten(0, 1)
-            target = target.flatten(0, 1)
-            loss = criterion(predictions, target).item()
-            test_loss += loss
-        print(f"Test loss: {test_loss}")
-
+from utils import train
 
 if __name__ == "__main__":
     # Define configuration

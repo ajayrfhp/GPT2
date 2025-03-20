@@ -22,9 +22,14 @@ def train(model, train_data, test_data, config):
             batch_loss += loss.item()
             if batch_idx % 100 == 0:
                 avg_batch_loss = batch_loss / batch_idx
-                print(f"Average batch loss: {avg_batch_loss}")
+                print(
+                    f"At epoch{epoch+1} batch{batch_idx}Average batch loss: {avg_batch_loss}"
+                )
                 batch_loss = 0
-        print(f"Epoch {epoch + 1}/{config['num_epochs']}, Loss: {loss.item()}")
+        perplexity = torch.exp(loss)
+        print(
+            f"Epoch {epoch + 1}/{config['num_epochs']}, Loss: {loss.item()} Perplexity: {perplexity.item()}"
+        )
 
         test_loss = 0
         for inpt, target in test_data:
@@ -35,7 +40,9 @@ def train(model, train_data, test_data, config):
             target = target.flatten(0, 1)
             loss = criterion(predictions, target).item()
             test_loss += loss
-        print(f"Test loss: {test_loss}")
+        test_loss /= len(test_data)
+        test_perplexity = torch.exp(test_loss)
+        print(f"Test loss: {test_loss} Test perplexity: {test_perplexity}")
 
 
 def get_sum_parameters_of_model(model, millions=True):
