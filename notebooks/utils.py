@@ -16,6 +16,11 @@ def train(model, train_data, test_data, config):
             predictions = model(inpt)
             predictions = predictions.flatten(0, 1)
             target = target.flatten(0, 1)
+            mask = target > 1 # 0 is end of text and 1 is padding
+            target = target[mask]
+            predictions = predictions[mask]
+            
+
             loss = torch.nn.CrossEntropyLoss()(predictions, target)
             loss.backward()
             optimizer.step()
@@ -23,32 +28,29 @@ def train(model, train_data, test_data, config):
             if batch_idx % 10 == 0 or batch_idx == 1:
                 avg_batch_loss = batch_loss / batch_idx
                 print(
-                    f"At epoch {epoch+1} batch {batch_idx}Average batch loss: {avg_batch_loss}"
+                    f"At epoch {epoch+1} batch {batch_idx} of num_batches {config["num_train_batches"]}Average batch loss: {avg_batch_loss}"
                 )
                 batch_loss = 0
-        perplexity = torch.exp(loss)
-        print(
-            f"Epoch {epoch + 1}/{config['num_epochs']}, Loss with mask: {loss.item()} Perplexity with mask: {perplexity.item()}"
-        )
 
-        test_loss = 0
-        for inpt, target in test_data:
-            inpt = inpt.to(config["device"])
-            target = target.to(config["device"])
-            predictions = model(inpt)
-            predictions = predictions.flatten(0, 1)
-            target = target.flatten(0, 1)
-            mask_indices = target > 1  # 0 is end of text and 1 is padding
-            predictions = predictions[mask_indices]
-            target = target[mask_indices]
-            loss = criterion(predictions, target).item()
+        with torch.no_grad():
+            test_loss = 0
+            for inpt, target in test_data:
+                inpt = inpt.to(config["device"])
+                target = target.to(config["device"])
+                predictions = model(inpt)
+                predictions = predictions.flatten(0, 1)
+                target = target.flatten(0, 1)
+                mask_indices = target > 1  # 0 is end of text and 1 is padding
+                predictions = predictions[mask_indices]
+                target = target[mask_indices]
+                loss = criterion(predictions, target).item()
 
-            test_loss += loss
-        test_loss /= len(test_data)
-        test_perplexity = torch.exp(torch.tensor(test_loss))
-        print(
-            f"Test loss without mask: at epoch {epoch} {test_loss} Test perplexity without mask: {test_perplexity}"
-        )
+                test_loss += loss
+            test_loss /= len(test_data)
+            test_perplexity = torch.exp(torch.tensor(test_loss))
+            print(
+                f"Test loss without mask: at epoch {epoch} {test_loss} Test perplexity without mask: {test_perplexity}"
+            )
 
 
 def get_sum_parameters_of_model(model, millions=True):
