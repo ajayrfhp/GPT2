@@ -1,4 +1,5 @@
 datasets
+line_profiler
 matplotlib
 numpy 
 pandas
