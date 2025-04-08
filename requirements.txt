@@ -1,10 +1,13 @@
+cython
 datasets
 line_profiler
 matplotlib
 numpy 
 pandas
+regex
+sentencepiece
 torch 
 torchvision
 torchaudio
 tiktoken
-transformers
+transformers==4.5.1
