@@ -8,41 +8,51 @@ def train(model, train_data, test_data, config):
         model.train()
         batch_idx = 0
         batch_loss = 0
-        for inpt, target in train_data:
+        for inpt, target, attention_mask in train_data:
             batch_idx += 1
             optimizer.zero_grad()
             inpt = inpt.to(config["device"])
             target = target.to(config["device"])
+            attention_mask = attention_mask.to(config["device"])
+
+            # apply attention mask to target and penalize only over non-masked tokens
+
             predictions = model(inpt)
             predictions = predictions.flatten(0, 1)
             target = target.flatten(0, 1)
-            mask = target > 1 # 0 is end of text and 1 is padding
-            target = target[mask]
-            predictions = predictions[mask]
-            
+            attention_mask = attention_mask.flatten(0, 1)
+
+            masked_indices = attention_mask == 0
+            target[masked_indices] = 0
+            predictions[masked_indices] = 0
 
             loss = torch.nn.CrossEntropyLoss()(predictions, target)
+            print(loss.shape)
             loss.backward()
             optimizer.step()
             batch_loss += loss.item()
             if batch_idx % 10 == 0 or batch_idx == 1:
                 avg_batch_loss = batch_loss / batch_idx
                 print(
-                    f"At epoch {epoch+1} batch {batch_idx} of num_batches {config["num_train_batches"]}Average batch loss: {avg_batch_loss}"
+                    f"At epoch {epoch+1} batch {batch_idx} of num_batches {config['num_train_batches']}Average batch loss: {avg_batch_loss}"
                 )
                 batch_loss = 0
 
         with torch.no_grad():
             test_loss = 0
-            for inpt, target in test_data:
+            for inpt, target, attention_mask in test_data:
                 inpt = inpt.to(config["device"])
                 target = target.to(config["device"])
+                attention_mask = attention_mask.to(config["device"])
                 predictions = model(inpt)
                 predictions = predictions.flatten(0, 1)
+                attention_mask = attention_mask.flatten(0, 1)
+
                 target = target.flatten(0, 1)
-                mask_indices = target > 1  # 0 is end of text and 1 is padding
-                predictions = predictions[mask_indices]
-                target = target[mask_indices]
+
+                masked_indices = attention_mask == 0
+                target[masked_indices] = 0
+                predictions[masked_indices] = 0
                 loss = criterion(predictions, target).item()
 
                 test_loss += loss
