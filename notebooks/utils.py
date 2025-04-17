@@ -2,7 +2,7 @@ import torch
 
 
 def train(model, train_data, test_data, config):
-    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
+    optimizer = torch.optim.Adam(model.parameters(), lr=config["learning_rate"])
     criterion = torch.nn.CrossEntropyLoss()
     for epoch in range(config["num_epochs"]):
         model.train()
@@ -27,7 +27,6 @@ def train(model, train_data, test_data, config):
             predictions[masked_indices] = 0
 
             loss = torch.nn.CrossEntropyLoss()(predictions, target)
-            print(loss.shape)
             loss.backward()
             optimizer.step()
             batch_loss += loss.item()
@@ -36,11 +35,14 @@ def train(model, train_data, test_data, config):
                 print(
                     f"At epoch {epoch+1} batch {batch_idx} of num_batches {config['num_train_batches']}Average batch loss: {avg_batch_loss}"
                 )
-                batch_loss = 0
 
         with torch.no_grad():
-            test_loss = 0
+            test_loss_total = 0
+            test_loss_running = 0
+            model.eval()
+            test_batch_idx = 0
             for inpt, target, attention_mask in test_data:
+                test_batch_idx += 1
                 inpt = inpt.to(config["device"])
                 target = target.to(config["device"])
                 attention_mask = attention_mask.to(config["device"])
@@ -55,11 +57,17 @@ def train(model, train_data, test_data, config):
                 predictions[masked_indices] = 0
                 loss = criterion(predictions, target).item()
 
-                test_loss += loss
-            test_loss /= len(test_data)
-            test_perplexity = torch.exp(torch.tensor(test_loss))
+                test_loss_total += loss
+                test_loss_running += loss
+                if test_batch_idx % 10 == 0 or test_batch_idx == 1:
+                    avg_test_loss = test_loss_running / test_batch_idx
+                    print(
+                        f"At epoch {epoch+1} batch {test_batch_idx} of num_batches {config['num_test_batches']}Average test loss: {avg_test_loss}"
+                    )
+            test_loss_total /= len(test_data)
+            test_perplexity = torch.exp(torch.tensor(test_loss_total))
             print(
-                f"Test loss without mask: at epoch {epoch} {test_loss} Test perplexity without mask: {test_perplexity}"
+                f"Test loss without mask: at epoch {epoch} {test_loss_total} Test perplexity without mask: {test_perplexity}"
             )
 
 

@@ -49,6 +49,7 @@ class GPT2(nn.Module):
         position_vector = position_vector.to(self.config["device"])
 
         position_embeddings = self.position_embedding(position_vector)
+
         x = token_embeddings + position_embeddings
 
         x = self.transformer_blocks(x)
