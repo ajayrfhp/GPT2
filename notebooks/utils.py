@@ -41,8 +41,9 @@ def train(model, train_data, test_data, config, use_fp_16=False):
             batch_loss += loss.item()
             if batch_idx % 100 == 0 or batch_idx == 1:
                 avg_batch_loss = batch_loss / batch_idx
+                perplexity = torch.exp(torch.tensor(avg_batch_loss)).item()
                 print(
-                    f"At epoch {epoch+1} batch {batch_idx} of num_batches {config['num_train_batches']} Average batch loss: {avg_batch_loss}"
+                    f"At epoch {epoch+1} batch {batch_idx} of num_batches {config['num_train_batches']} Average batch loss: {avg_batch_loss} Perplexity: {perplexity}"
                 )
 
         with torch.no_grad():
