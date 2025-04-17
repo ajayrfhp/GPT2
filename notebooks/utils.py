@@ -83,6 +83,18 @@ def train(model, train_data, test_data, config, use_fp_16=False):
                 f"Test loss without mask: at epoch {epoch} {test_loss_total} Test perplexity without mask: {test_perplexity}"
             )
 
+        model_path = f"{config['model_path']}/epoch_{epoch+1}.pt"
+        # save model and optimizer state
+        torch.save(
+            {
+                "model_state_dict": model.state_dict(),
+                "optimizer_state_dict": optimizer.state_dict(),
+                "epoch": epoch,
+                "loss": test_loss_total,
+            },
+            model_path,
+        )
+
 
 def get_sum_parameters_of_model(model, millions=True):
     """Get number of parameters of model
