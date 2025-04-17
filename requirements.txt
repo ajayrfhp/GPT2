@@ -10,4 +10,4 @@ torch
 torchvision
 torchaudio
 tiktoken
-transformers==4.5.1
+transformers
