@@ -1,9 +1,12 @@
 import torch
 
 
-def train(model, train_data, test_data, config):
-    optimizer = torch.optim.Adam(model.parameters(), lr=config["learning_rate"])
+def train(model, train_data, test_data, config, use_fp_16=False):
+    optimizer = torch.optim.AdamW(model.parameters(), lr=config["learning_rate"])
     criterion = torch.nn.CrossEntropyLoss()
+
+    scaler = torch.amp.GradScaler() if use_fp_16 else None
+
     for epoch in range(config["num_epochs"]):
         model.train()
         batch_idx = 0
@@ -14,26 +17,32 @@ def train(model, train_data, test_data, config):
             inpt = inpt.to(config["device"])
             target = target.to(config["device"])
             attention_mask = attention_mask.to(config["device"])
+            device_type = inpt.device.type
+            with torch.amp.autocast(enabled=use_fp_16, device_type=device_type):
+                predictions = model(inpt)
+                predictions = predictions.flatten(0, 1)
+                target = target.flatten(0, 1)
+                attention_mask = attention_mask.flatten(0, 1)
 
-            # apply attention mask to target and penalize only over non-masked tokens
+                masked_indices = attention_mask == 0
+                target[masked_indices] = 0
+                predictions[masked_indices] = 0
 
-            predictions = model(inpt)
-            predictions = predictions.flatten(0, 1)
-            target = target.flatten(0, 1)
-            attention_mask = attention_mask.flatten(0, 1)
+                loss = criterion(predictions, target)
 
-            masked_indices = attention_mask == 0
-            target[masked_indices] = 0
-            predictions[masked_indices] = 0
+            if use_fp_16:
+                scaler.scale(loss).backward()
+                scaler.step(optimizer)
+                scaler.update()
+            else:
+                loss.backward()
+                optimizer.step()
 
-            loss = torch.nn.CrossEntropyLoss()(predictions, target)
-            loss.backward()
-            optimizer.step()
             batch_loss += loss.item()
             if batch_idx % 100 == 0 or batch_idx == 1:
                 avg_batch_loss = batch_loss / batch_idx
                 print(
-                    f"At epoch {epoch+1} batch {batch_idx} of num_batches {config['num_train_batches']}Average batch loss: {avg_batch_loss}"
+                    f"At epoch {epoch+1} batch {batch_idx} of num_batches {config['num_train_batches']} Average batch loss: {avg_batch_loss}"
                 )
 
         with torch.no_grad():
@@ -46,23 +55,26 @@ def train(model, train_data, test_data, config):
                 inpt = inpt.to(config["device"])
                 target = target.to(config["device"])
                 attention_mask = attention_mask.to(config["device"])
-                predictions = model(inpt)
-                predictions = predictions.flatten(0, 1)
-                attention_mask = attention_mask.flatten(0, 1)
+                device_type = inpt.device.type
 
-                target = target.flatten(0, 1)
+                with torch.amp.autocast(enabled=use_fp_16, device_type=device_type):
+                    predictions = model(inpt)
+                    predictions = predictions.flatten(0, 1)
+                    attention_mask = attention_mask.flatten(0, 1)
 
-                masked_indices = attention_mask == 0
-                target[masked_indices] = 0
-                predictions[masked_indices] = 0
-                loss = criterion(predictions, target).item()
+                    target = target.flatten(0, 1)
+
+                    masked_indices = attention_mask == 0
+                    target[masked_indices] = 0
+                    predictions[masked_indices] = 0
+                    loss = criterion(predictions, target).item()
 
                 test_loss_total += loss
                 test_loss_running += loss
                 if test_batch_idx % 100 == 0 or test_batch_idx == 1:
                     avg_test_loss = test_loss_running / test_batch_idx
                     print(
-                        f"At epoch {epoch+1} batch {test_batch_idx} of num_batches {config['num_test_batches']}Average test loss: {avg_test_loss}"
+                        f"At epoch {epoch+1} batch {test_batch_idx} of num_batches {config['num_test_batches']} Average test loss: {avg_test_loss}"
                     )
             test_loss_total /= len(test_data)
             test_perplexity = torch.exp(torch.tensor(test_loss_total))
