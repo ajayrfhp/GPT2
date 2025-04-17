@@ -30,7 +30,7 @@ def train(model, train_data, test_data, config):
             loss.backward()
             optimizer.step()
             batch_loss += loss.item()
-            if batch_idx % 10 == 0 or batch_idx == 1:
+            if batch_idx % 100 == 0 or batch_idx == 1:
                 avg_batch_loss = batch_loss / batch_idx
                 print(
                     f"At epoch {epoch+1} batch {batch_idx} of num_batches {config['num_train_batches']}Average batch loss: {avg_batch_loss}"
@@ -59,7 +59,7 @@ def train(model, train_data, test_data, config):
 
                 test_loss_total += loss
                 test_loss_running += loss
-                if test_batch_idx % 10 == 0 or test_batch_idx == 1:
+                if test_batch_idx % 100 == 0 or test_batch_idx == 1:
                     avg_test_loss = test_loss_running / test_batch_idx
                     print(
                         f"At epoch {epoch+1} batch {test_batch_idx} of num_batches {config['num_test_batches']}Average test loss: {avg_test_loss}"
