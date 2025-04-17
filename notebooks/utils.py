@@ -83,7 +83,7 @@ def train(model, train_data, test_data, config, use_fp_16=False):
                 f"Test loss without mask: at epoch {epoch} {test_loss_total} Test perplexity without mask: {test_perplexity}"
             )
 
-        model_path = f"{config['model_path']}/epoch_{epoch+1}.pt"
+        model_path = f"{config['model_path']}_epoch_{epoch+1}.pt"
         # save model and optimizer state
         torch.save(
             {
