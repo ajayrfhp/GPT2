@@ -1,4 +1,15 @@
 import torch
+import tokenizers
+import transformers
+import tiktoken
+from tokenizers import Tokenizer
+from tokenizers.models import BPE
+from tokenizers.trainers import BpeTrainer
+from tokenizers.pre_tokenizers import Whitespace
+import tempfile
+from tokenizers import AddedToken
+from transformers import PreTrainedTokenizerFast
+import os
 
 
 def train(model, train_data, test_data, config, use_fp_16=False):
@@ -94,6 +105,107 @@ def train(model, train_data, test_data, config, use_fp_16=False):
             },
             model_path,
         )
+
+
+def slide_window(text_batch, wrapped_tokenizer, max_length=128):
+    """ """
+
+    # --- Step 1 & 2: Tokenize, Add EOS, Create Shifted Inputs/Outputs (Raw) ---
+
+    all_tokens = []
+    input_ids_raw = []
+    output_ids_raw = []
+    all_input_ids = []
+    all_output_ids = []
+    all_attention_masks = []
+
+    eos_token_id = wrapped_tokenizer.convert_tokens_to_ids(wrapped_tokenizer.eos_token)
+
+    for text in text_batch["text"]:
+        raw_tokens = wrapped_tokenizer.tokenize(text, truncation=True)
+        # iterate over tokens in chunks of size max_length
+        for i in range(0, len(raw_tokens), max_length - 1):
+            tokens = raw_tokens[i : i + max_length - 1]
+
+            assert len(tokens) <= max_length - 1, "Token length exceeds max_length"
+            token_ids = wrapped_tokenizer.convert_tokens_to_ids(tokens)
+            token_ids.append(eos_token_id)  # Add EOS ID
+
+            # Create input/output pairs (before padding/truncation)
+            current_input_ids = token_ids[:-1]
+            current_output_ids = token_ids[1:]
+
+            input_ids_raw.append(current_input_ids)
+            output_ids_raw.append(current_output_ids)
+            all_tokens.append(tokens)
+
+            padded_inputs = wrapped_tokenizer.pad(
+                {"input_ids": input_ids_raw},
+                padding="max_length",
+                max_length=max_length,
+                return_tensors="pt",
+                return_attention_mask=True,
+            )
+
+            padded_outputs = wrapped_tokenizer.pad(
+                {"input_ids": output_ids_raw},
+                padding="max_length",
+                max_length=max_length,
+                return_tensors="pt",
+            )
+            all_input_ids.append(padded_inputs["input_ids"])
+            all_output_ids.append(padded_outputs["input_ids"])
+            all_attention_masks.append(padded_inputs["attention_mask"])
+
+            assert len(padded_inputs["input_ids"][0]) == max_length
+            assert len(padded_outputs["input_ids"][0]) == max_length
+            assert len(padded_outputs["attention_mask"][0]) == max_length
+
+    return {
+        "input_ids": all_input_ids,
+        "attention_mask": all_attention_masks,
+        "output_ids": all_output_ids,
+    }
+
+
+def get_train_tokenizer(train_dataset, vocab_size=10000):
+    # re-train tokenizer on train_dataset
+
+    # Initialize a new tokenizer with BPE model
+    tokenizer = Tokenizer(BPE(unk_token="<|endoftext|>"))
+    tokenizer.pre_tokenizer = Whitespace()
+
+    # Define special tokens
+    special_tokens = ["<|endoftext|>"]
+    trainer = BpeTrainer(special_tokens=special_tokens, vocab_size=vocab_size)
+
+    # Create a temporary file with raw text for training
+    with tempfile.NamedTemporaryFile(mode="w+", delete=False) as f:
+        for text in train_dataset["text"]:
+            f.write(text + "\n")
+        temp_file_path = f.name
+
+    # Train the tokenizer
+    tokenizer.train(files=[temp_file_path], trainer=trainer)
+
+    # Convert to Hugging Face tokenizer
+
+    wrapped_tokenizer = PreTrainedTokenizerFast(
+        tokenizer_object=tokenizer,
+        bos_token="<|endoftext|>",
+        eos_token="<|endoftext|>",
+        unk_token="<|endoftext|>",
+        pad_token="<|endoftext|>",
+        padding_side="left",
+    )
+
+    # Clean up the temporary file
+    os.unlink(temp_file_path)
+
+    print(
+        f"Tokenizer trained on custom dataset with vocabulary size: {wrapped_tokenizer.vocab_size}"
+    )
+    return wrapped_tokenizer
 
 
 def get_sum_parameters_of_model(model, millions=True):
