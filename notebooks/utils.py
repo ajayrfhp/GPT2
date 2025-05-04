@@ -22,7 +22,13 @@ def train(model, train_data, test_data, config, use_fp_16=False):
         model.train()
         batch_idx = 0
         batch_loss = 0
-        for inpt, target, attention_mask in train_data:
+        for batch in train_data:
+            if type(batch) == dict:
+                inpt = batch["input_ids"]
+                target = batch["output_ids"]
+                attention_mask = batch["attention_mask"]
+            else:
+                inpt, target, attention_mask = batch
             batch_idx += 1
             optimizer.zero_grad()
             inpt = inpt.to(config["device"])
@@ -62,7 +68,13 @@ def train(model, train_data, test_data, config, use_fp_16=False):
             test_loss_running = 0
             model.eval()
             test_batch_idx = 0
-            for inpt, target, attention_mask in test_data:
+            for batch in test_data:
+                if type(batch) == dict:
+                    inpt = batch["input_ids"]
+                    target = batch["output_ids"]
+                    attention_mask = batch["attention_mask"]
+                else:
+                    inpt, target, attention_mask = batch
                 test_batch_idx += 1
                 inpt = inpt.to(config["device"])
                 target = target.to(config["device"])
@@ -115,13 +127,11 @@ def slide_window(text_batch, wrapped_tokenizer, max_length=128):
     all_tokens = []
     input_ids_raw = []
     output_ids_raw = []
-    all_input_ids = []
-    all_output_ids = []
-    all_attention_masks = []
 
     eos_token_id = wrapped_tokenizer.convert_tokens_to_ids(wrapped_tokenizer.eos_token)
 
     for text in text_batch["text"]:
+
         raw_tokens = wrapped_tokenizer.tokenize(text, truncation=True)
         # iterate over tokens in chunks of size max_length
         for i in range(0, len(raw_tokens), max_length - 1):
@@ -139,32 +149,25 @@ def slide_window(text_batch, wrapped_tokenizer, max_length=128):
             output_ids_raw.append(current_output_ids)
             all_tokens.append(tokens)
 
-            padded_inputs = wrapped_tokenizer.pad(
-                {"input_ids": input_ids_raw},
-                padding="max_length",
-                max_length=max_length,
-                return_tensors="pt",
-                return_attention_mask=True,
-            )
+    padded_inputs = wrapped_tokenizer.pad(
+        {"input_ids": input_ids_raw},
+        padding="max_length",
+        max_length=max_length,
+        return_tensors="pt",
+        return_attention_mask=True,
+    )
 
-            padded_outputs = wrapped_tokenizer.pad(
-                {"input_ids": output_ids_raw},
-                padding="max_length",
-                max_length=max_length,
-                return_tensors="pt",
-            )
-            all_input_ids.append(padded_inputs["input_ids"])
-            all_output_ids.append(padded_outputs["input_ids"])
-            all_attention_masks.append(padded_inputs["attention_mask"])
-
-            assert len(padded_inputs["input_ids"][0]) == max_length
-            assert len(padded_outputs["input_ids"][0]) == max_length
-            assert len(padded_outputs["attention_mask"][0]) == max_length
+    padded_outputs = wrapped_tokenizer.pad(
+        {"input_ids": output_ids_raw},
+        padding="max_length",
+        max_length=max_length,
+        return_tensors="pt",
+    )
 
     return {
-        "input_ids": all_input_ids,
-        "attention_mask": all_attention_masks,
-        "output_ids": all_output_ids,
+        "input_ids": padded_inputs["input_ids"],
+        "attention_mask": padded_inputs["attention_mask"],
+        "output_ids": padded_outputs["input_ids"],
     }
 
 
